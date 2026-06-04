@@ -253,7 +253,26 @@ def renderizar_fase_procesado() -> None:
 
         # --- PESTAÑA 3: MUTACIÓN DE VARIABLES ---
         with tab_variables:
-            st.markdown("### Creación de nuevas Variables")
+            
+            # --- SECCIÓN A: AUTO-FEATURE ENGINEERING ---
+            st.markdown("### 🧬 Ingeniería Automática")
+            st.info("Deja que el sistema busque fechas ocultas, procese textos libres y extraiga patrones matemáticos avanzados con un solo clic.")
+            
+            if st.button("🚀 Ejecutar Auto-Feature Engineering", type="primary", use_container_width=True):
+                with st.spinner("Modificando datos temporales y textuales..."):
+                    if ruta == 'supervisado':
+                        st.session_state['df_train'] = data_service.auto_feature_engineering(st.session_state['df_train'])
+                        st.session_state['df_test'] = data_service.auto_feature_engineering(st.session_state['df_test'])
+                    else:
+                        st.session_state['df_entero'] = data_service.auto_feature_engineering(st.session_state['df_entero'])
+                    
+                    st.success("¡Datos modificados con éxito! Revisa la tabla inferior.")
+                    st.rerun()
+
+            st.divider()
+
+            # --- SECCIÓN B: MUTACIÓN MANUAL ---
+            st.markdown("### 🧮 Creación Manual de Variables")
             
             cols_num = df_actual.select_dtypes(include=['int64', 'float64']).columns.tolist()
             if len(cols_num) >= 2:
@@ -277,7 +296,7 @@ def renderizar_fase_procesado() -> None:
                         st.success(f"✅ Variable '{nombre_nueva_col}' creada con éxito.")
                         st.rerun()
             else:
-                st.warning("Necesitas al menos 2 columnas numéricas para realizar operaciones matemáticas.")
+                st.warning("Necesitas al menos 2 columnas numéricas para realizar operaciones matemáticas manuales.")
 
         st.divider()
 

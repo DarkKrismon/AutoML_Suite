@@ -295,3 +295,59 @@ def crear_nueva_columna(df: pd.DataFrame, col1: str, col2: str, operacion: str, 
         print(f"Error al crear variable: {e}")
         return df
 
+
+def auto_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Motor de Auto-Feature Engineering.
+    Escanea el DataFrame buscando patrones no numéricos complejos:
+    1. Fechas: Las despieza en Año, Mes, Día, Día de la Semana y Flag de Fin de Semana.
+    2. Textos Largos (NLP): Extrae la longitud del texto y el conteo de palabras.
+    
+    Retorna el DataFrame con las nuevas características listas para el algoritmo,
+    eliminando las columnas originales ilegibles.
+    """
+    df_out = df.copy()
+    columnas_originales = list(df_out.columns) 
+    
+    for col in columnas_originales:
+        if col not in df_out.columns:
+            continue
+            
+        tipo_col = str(df_out[col].dtype)
+        es_texto = tipo_col == 'object' or 'str' in tipo_col or 'string' in tipo_col
+        
+        # 1. Escáner de Series Temporales (Fechas)
+        if es_texto:
+            if 'date' in col.lower() or 'fecha' in col.lower():
+                try:
+                    df_out[col] = pd.to_datetime(df_out[col], errors='coerce')
+                except Exception as e:
+                    print(f"   ❌ Falló el parseo de fecha: {e}")
+
+        # Si logramos convertirla (o si ya era datetime nativo)
+        if pd.api.types.is_datetime64_any_dtype(df_out[col]):
+            df_out[f"{col}_año"] = df_out[col].dt.year
+            df_out[f"{col}_mes"] = df_out[col].dt.month
+            df_out[f"{col}_dia"] = df_out[col].dt.day
+            df_out[f"{col}_dia_semana"] = df_out[col].dt.dayofweek
+            df_out[f"{col}_es_finde"] = df_out[f"{col}_dia_semana"].isin([5, 6]).astype(int)
+            
+            df_out = df_out.drop(columns=[col])
+            continue # Si ya mutó a fecha, saltamos a la siguiente columna
+            
+        # 2. Escáner de NLP Básico (Textos Libres)
+        if es_texto and col in df_out.columns:
+            try:
+                # Normalizamos a string para evitar errores con nulos
+                textos = df_out[col].fillna("").astype(str)
+                longitud_media = textos.apply(len).mean()
+                
+                if longitud_media > 20:
+                    df_out[f"{col}_longitud_chars"] = textos.apply(len)
+                    df_out[f"{col}_num_palabras"] = textos.apply(lambda x: len(x.split()))
+                    
+                    df_out = df_out.drop(columns=[col])
+            except Exception as e:
+                print(f"   ❌ Falló el NLP Básico: {e}")
+
+    return df_out
