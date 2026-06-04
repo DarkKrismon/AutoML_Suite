@@ -137,6 +137,16 @@ def renderizar_fase_supervisada() -> None:
         "el que obtenga mayor resultado saldrá como principal. Por otro lado, tenemos GridSearch " \
         "que ajusta automáticamente los hiperparámetros de nuestro modelo RandomForest.")
         
+        # --- INTERRUPTOR SMOTE UI ---
+        st.markdown("#### ⚖️ Cura de Desbalanceo")
+        usar_smote = st.toggle(
+            "Activar SMOTE (Equilibrar datos sintéticamente)", 
+            value=False, 
+            help="Genera datos artificiales de forma sintética para las clases minoritarias. Solo se aplica al Train (cero Data Leakage). Úsalo solo si tu Dataset está muy desbalanceado."
+        )
+
+        st.divider()
+
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
@@ -151,9 +161,9 @@ def renderizar_fase_supervisada() -> None:
                 try:
                     # Elegimos la ruta según el botón pulsado
                     if btn_rapido:
-                        resultados = supervisado_service.entrenar_automl(df_train, df_test, columna_target, params_usuario)
+                        resultados = supervisado_service.entrenar_automl(df_train, df_test, columna_target, params_usuario, usar_smote)
                     else:
-                        resultados = supervisado_service.entrenar_automl_gridsearch(df_train, df_test, columna_target)
+                        resultados = supervisado_service.entrenar_automl_gridsearch(df_train, df_test, columna_target, usar_smote)
 
 
                     if 'historial_entrenamientos' not in st.session_state:

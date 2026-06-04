@@ -7,6 +7,7 @@ from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 import pandas as pd
 from typing import Dict, Any
+from imblearn.over_sampling import SMOTE
 
 """
 Módulo de Servicio para Machine Learning Supervisado.
@@ -15,7 +16,7 @@ incluyendo codificación, escalado, cross-validation estricto en Train y
 generación de reportes de rendimiento y matrices de confusión.
 """
 
-def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_target: str, hiperparametros: dict) -> Dict[str, Any]:
+def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_target: str, hiperparametros: dict, usar_smote: bool = False) -> Dict[str, Any]:
     """
     Entrena cinco algoritmos en paralelo utilizando Cross-Validation sobre el conjunto de Train.
     Selecciona automáticamente el ganador, lo entrena de forma final y evalúa su rendimiento 
@@ -31,7 +32,9 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
         La variable que se intenta predecir.
     hiperparametros : dict
         Los ajustes seleccionados por el usuario desde la UI.
-        
+    usar_smote : bool, optional
+        Si se debe aplicar SMOTE para equilibrar las clases en el conjunto de entrenamiento.
+
     Retorna:
     -------
     dict
@@ -82,6 +85,16 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
+
+    # --- INYECCIÓN SMOTE ---
+    if usar_smote and es_clasificacion:
+        try:
+            smote = SMOTE(random_state=42)
+            X_train_scaled, y_train = smote.fit_resample(X_train_scaled, y_train)
+        except Exception as e:
+            print(f"⚠️ No se pudo aplicar SMOTE (puede que haya muy pocos datos en una clase): {e}")
+
+
     #Extraemos hiperparámetros
     rf_n = hiperparametros['rf_arboles']
     rf_depth = hiperparametros['rf_profundidad'] if hiperparametros['rf_profundidad'] > 0 else None
@@ -167,7 +180,7 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
     }
 
 
-def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_target: str) -> Dict[str, Any]:
+def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_target: str, usar_smote: bool = False) -> Dict[str, Any]:
     """
     Ejecuta una búsqueda en cuadrícula (GridSearchCV) sobre un Random Forest
     para encontrar matemáticamente la mejor combinación posible de hiperparámetros.
@@ -179,6 +192,8 @@ def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, co
         Los conjuntos de datos.
     columna_target : str
         La variable a predecir.
+    usar_smote : bool, optional
+        Si se debe aplicar SMOTE para equilibrar las clases en el conjunto de entrenamiento.
     """
     
     X_train = df_train.drop(columns=[columna_target]).copy()
@@ -220,6 +235,16 @@ def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, co
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
+    
+
+    # --- INYECCIÓN SMOTE ---
+    if usar_smote and es_clasificacion:
+        try:
+            smote = SMOTE(random_state=42)
+            X_train_scaled, y_train = smote.fit_resample(X_train_scaled, y_train)
+        except Exception as e:
+            print(f"⚠️ No se pudo aplicar SMOTE: {e}")
+
     
     # Cuadrícula de búsqueda
     param_grid = {
