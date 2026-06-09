@@ -150,21 +150,23 @@ def renderizar_fase_supervisada() -> None:
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            btn_rapido = st.button("Entrenamiento Rápido (5 Modelos)", use_container_width=True,  help="Entrena: Regresión Logística, Random Forest, Gradient Boosting, KNN y SVM")
+            st.markdown("#### ⚡ Batalla Rápida")
+            btn_rapido = st.button("Entrenamiento Rápido (7 Modelos)", use_container_width=True,  help="Entrena: Regresión Logística, Random Forest, Gradient Boosting, LightGBM, CatBoost, KNN y SVM.")
+        
         with col_btn2:
-            btn_grid = st.button("GridSearchCV", use_container_width=True, help="Busca automáticamente la mejor combinación matemática. Tarda un poco más.")
+            st.markdown("#### 🎯 GridSearch")
+            algoritmo_grid = st.selectbox("Elige a tu campeón:", ["Random Forest", "LightGBM", "CatBoost"], label_visibility="collapsed")
+            btn_grid = st.button(f"Optimizar {algoritmo_grid}", use_container_width=True, help="Busca automáticamente la mejor combinación matemática para el algoritmo seleccionado. Tarda más.")
 
         if btn_rapido or btn_grid:
-            mensaje_carga = "Ejecutando GridSearch..." if btn_grid else "Entrenando los 5 modelos..."
+            mensaje_carga = f"Optimizando {algoritmo_grid} con GridSearchCV..." if btn_grid else "Entrenando a los 7 modelos en paralelo..."
             
             with st.spinner(mensaje_carga):
                 try:
-                    # Elegimos la ruta según el botón pulsado
                     if btn_rapido:
                         resultados = supervisado_service.entrenar_automl(df_train, df_test, columna_target, params_usuario, usar_smote)
                     else:
-                        resultados = supervisado_service.entrenar_automl_gridsearch(df_train, df_test, columna_target, usar_smote)
-
+                        resultados = supervisado_service.entrenar_automl_gridsearch(df_train, df_test, columna_target, algoritmo_grid, usar_smote)
 
                     if 'historial_entrenamientos' not in st.session_state:
                         st.session_state['historial_entrenamientos'] = []

@@ -8,6 +8,8 @@ from sklearn.svm import SVC, SVR
 import pandas as pd
 from typing import Dict, Any
 from imblearn.over_sampling import SMOTE
+from lightgbm import LGBMClassifier, LGBMRegressor
+from catboost import CatBoostClassifier, CatBoostRegressor
 
 """
 Módulo de Servicio para Machine Learning Supervisado.
@@ -86,7 +88,7 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
     X_test_scaled = scaler.transform(X_test)
     
 
-    # --- INYECCIÓN SMOTE ---
+    # --- SMOTE ---
     if usar_smote and es_clasificacion:
         try:
             smote = SMOTE(random_state=42)
@@ -95,7 +97,7 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
             print(f"⚠️ No se pudo aplicar SMOTE (puede que haya muy pocos datos en una clase): {e}")
 
 
-    #Extraemos hiperparámetros
+    # Extraemos hiperparámetros
     rf_n = hiperparametros['rf_arboles']
     rf_depth = hiperparametros['rf_profundidad'] if hiperparametros['rf_profundidad'] > 0 else None
     rf_min_split = hiperparametros['rf_min_split']
@@ -115,6 +117,8 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
             "Regresión Logística": LogisticRegression(max_iter=1000, random_state=42),
             "Random Forest": RandomForestClassifier(n_estimators=rf_n, max_depth=rf_depth, min_samples_split=rf_min_split, min_samples_leaf=rf_min_leaf, random_state=42),
             "Gradient Boosting": GradientBoostingClassifier(n_estimators=gb_n, learning_rate=gb_lr, max_depth=gb_depth, subsample=gb_subsample, random_state=42),
+            "LightGBM": LGBMClassifier(random_state=42, verbose=-1),
+            "CatBoost": CatBoostClassifier(random_state=42, verbose=0),
             "K-Nearest Neighbors": KNeighborsClassifier(n_neighbors=knn_k),
             "Support Vector Machine": SVC(C=svm_c, probability=True, random_state=42)
         }
@@ -124,6 +128,8 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
             "Regresión Lineal": LinearRegression(),
             "Random Forest": RandomForestRegressor(n_estimators=rf_n, max_depth=rf_depth, min_samples_split=rf_min_split, min_samples_leaf=rf_min_leaf, random_state=42),
             "Gradient Boosting": GradientBoostingRegressor(n_estimators=gb_n, learning_rate=gb_lr, max_depth=gb_depth, subsample=gb_subsample, random_state=42),
+            "LightGBM": LGBMRegressor(random_state=42, verbose=-1),
+            "CatBoost": CatBoostRegressor(random_state=42, verbose=0),
             "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=knn_k),
             "Support Vector Machine": SVR(C=svm_c)
         }
@@ -180,7 +186,7 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
     }
 
 
-def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_target: str, usar_smote: bool = False) -> Dict[str, Any]:
+def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_target: str, algoritmo_elegido: str, usar_smote: bool = False) -> Dict[str, Any]:
     """
     Ejecuta una búsqueda en cuadrícula (GridSearchCV) sobre un Random Forest
     para encontrar matemáticamente la mejor combinación posible de hiperparámetros.
@@ -237,7 +243,7 @@ def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, co
     X_test_scaled = scaler.transform(X_test)
     
 
-    # --- INYECCIÓN SMOTE ---
+    # --- SMOTE ---
     if usar_smote and es_clasificacion:
         try:
             smote = SMOTE(random_state=42)
@@ -246,19 +252,28 @@ def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, co
             print(f"⚠️ No se pudo aplicar SMOTE: {e}")
 
     
-    # Cuadrícula de búsqueda
-    param_grid = {
-        'n_estimators': [50, 100, 200],
-        'max_depth': [3, 5, 7],
-        'min_samples_split': [5, 10]
-    }
+# Cuadrícula de búsqueda
+    if algoritmo_elegido == "Random Forest":
+        param_grid = {'n_estimators': [50, 100, 200], 'max_depth': [3, 5, 7], 'min_samples_split': [5, 10]}
+        modelo_base = RandomForestClassifier(random_state=42) if es_clasificacion else RandomForestRegressor(random_state=42)
+        
+    elif algoritmo_elegido == "LightGBM":
+        param_grid = {'n_estimators': [50, 100, 200], 'max_depth': [3, 5, 7], 'learning_rate': [0.01, 0.1]}
+        modelo_base = LGBMClassifier(random_state=42, verbose=-1) if es_clasificacion else LGBMRegressor(random_state=42, verbose=-1)
+        
+    elif algoritmo_elegido == "CatBoost":
+        # CatBoost usa 'iterations' y 'depth' en lugar de n_estimators y max_depth
+        param_grid = {'iterations': [50, 100, 200], 'depth': [4, 6], 'learning_rate': [0.01, 0.1]}
+        modelo_base = CatBoostClassifier(random_state=42, verbose=0) if es_clasificacion else CatBoostRegressor(random_state=42, verbose=0)
     
+    else:
+        raise ValueError("Algoritmo no soportado para GridSearch.")
+
     if es_clasificacion:
-        modelo_base = RandomForestClassifier(random_state=42)
         grid_search = GridSearchCV(estimator=modelo_base, param_grid=param_grid, cv=5, scoring='accuracy', n_jobs=-1)
     else:
-        modelo_base = RandomForestRegressor(random_state=42)
         grid_search = GridSearchCV(estimator=modelo_base, param_grid=param_grid, cv=5, scoring='r2', n_jobs=-1)
+
 
     # Entrenamos solo con X_train_scaled
     grid_search.fit(X_train_scaled, y_train)
@@ -267,7 +282,7 @@ def entrenar_automl_gridsearch(df_train: pd.DataFrame, df_test: pd.DataFrame, co
     mejor_score_cv = grid_search.best_score_
     
     params_ganadores = grid_search.best_params_
-    mejor_nombre = "GridSearchCV"
+    mejor_nombre = f"GridSearch ({algoritmo_elegido})"
     
     resultados = {mejor_nombre: mejor_score_cv} 
     
