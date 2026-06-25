@@ -111,16 +111,25 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
     knn_k = hiperparametros.get('knn_neighbors', 5)
     svm_c = hiperparametros.get('svm_c', 1.0)
 
+    lgbm_n = hiperparametros.get('lgbm_arboles', 100)
+    lgbm_lr = hiperparametros.get('lgbm_learning_rate', 0.1)
+    lgbm_depth = hiperparametros.get('lgbm_profundidad', -1)
+    
+    cat_iter = hiperparametros.get('cat_iteraciones', 100)
+    cat_lr = hiperparametros.get('cat_learning_rate', 0.1)
+    cat_depth = hiperparametros.get('cat_profundidad', 6)
+
     # Inyectamos los parámetros en los algoritmos
     if es_clasificacion:
         modelos = {
             "Regresión Logística": LogisticRegression(max_iter=1000, random_state=42),
             "Random Forest": RandomForestClassifier(n_estimators=rf_n, max_depth=rf_depth, min_samples_split=rf_min_split, min_samples_leaf=rf_min_leaf, random_state=42),
             "Gradient Boosting": GradientBoostingClassifier(n_estimators=gb_n, learning_rate=gb_lr, max_depth=gb_depth, subsample=gb_subsample, random_state=42),
-            "LightGBM": LGBMClassifier(random_state=42, verbose=-1),
-            "CatBoost": CatBoostClassifier(random_state=42, verbose=0),
+            "LightGBM": LGBMClassifier(n_estimators=lgbm_n, learning_rate=lgbm_lr, max_depth=lgbm_depth, random_state=42, verbose=-1),
+            "CatBoost": CatBoostClassifier(iterations=cat_iter, learning_rate=cat_lr, depth=cat_depth, random_state=42, verbose=0),
             "K-Nearest Neighbors": KNeighborsClassifier(n_neighbors=knn_k),
             "Support Vector Machine": SVC(C=svm_c, probability=True, random_state=42)
+
         }
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     else:
@@ -128,8 +137,8 @@ def entrenar_automl(df_train: pd.DataFrame, df_test: pd.DataFrame, columna_targe
             "Regresión Lineal": LinearRegression(),
             "Random Forest": RandomForestRegressor(n_estimators=rf_n, max_depth=rf_depth, min_samples_split=rf_min_split, min_samples_leaf=rf_min_leaf, random_state=42),
             "Gradient Boosting": GradientBoostingRegressor(n_estimators=gb_n, learning_rate=gb_lr, max_depth=gb_depth, subsample=gb_subsample, random_state=42),
-            "LightGBM": LGBMRegressor(random_state=42, verbose=-1),
-            "CatBoost": CatBoostRegressor(random_state=42, verbose=0),
+            "LightGBM": LGBMRegressor(n_estimators=lgbm_n, learning_rate=lgbm_lr, max_depth=lgbm_depth, random_state=42, verbose=-1),
+            "CatBoost": CatBoostRegressor(iterations=cat_iter, learning_rate=cat_lr, depth=cat_depth, random_state=42, verbose=0),
             "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=knn_k),
             "Support Vector Machine": SVR(C=svm_c)
         }

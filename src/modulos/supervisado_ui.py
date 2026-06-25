@@ -61,7 +61,13 @@ def renderizar_fase_supervisada() -> None:
             'gb_profundidad': 3,
             'gb_subsample': 1.0,
             'knn_neighbors': 5,
-            'svm_c': 1.0
+            'svm_c': 1.0,
+            'lgbm_arboles': 100,
+            'lgbm_learning_rate': 0.1,
+            'lgbm_profundidad': -1,
+            'cat_iteraciones': 100,
+            'cat_learning_rate': 0.1,
+            'cat_profundidad': 6
         }
         
 
@@ -111,14 +117,29 @@ def renderizar_fase_supervisada() -> None:
                     help="Recomendación: 1.0. Bajarlo a 0.8 introduce aleatoriedad y reduce el Overfitting."
                 )
 
+
             col3, col4 = st.columns(2)
             with col3:
+                st.markdown("#### ⚡ LightGBM", help="Construye árboles por hojas en lugar de por niveles. El más rápido para conjuntos de datos masivos.")
+                params_usuario['lgbm_arboles'] = st.slider("Árboles (n_estimators) [LGBM]", 10, 500, 100, 10)
+                params_usuario['lgbm_learning_rate'] = st.select_slider("Tasa de Aprendizaje [LGBM]", options=[0.01, 0.05, 0.1, 0.2, 0.5], value=0.1)
+                params_usuario['lgbm_profundidad'] = st.slider("Profundidad [LGBM]", -1, 20, -1, 1, help="-1 significa profundidad sin límite.")
+
+            with col4:
+                st.markdown("#### 🐈 CatBoost", help="Especialista absoluto en datos. Menos propenso al overfitting y optimizado bajo el capó.")
+                params_usuario['cat_iteraciones'] = st.slider("Iteraciones (iterations) [CatBoost]", 10, 500, 100, 10)
+                params_usuario['cat_learning_rate'] = st.select_slider("Tasa de Aprendizaje [CatBoost]", options=[0.01, 0.05, 0.1, 0.2, 0.5], value=0.1)
+                params_usuario['cat_profundidad'] = st.slider("Profundidad (depth) [CatBoost]", 1, 12, 6, 1, help="En CatBoost, la profundidad no debería pasar de 10-12 por rendimiento.")
+
+
+            col5, col6 = st.columns(2)
+            with col5:
                 st.markdown("#### 📍 K-Nearest Neighbors (KNN)", help="Es excelente para encontrar anomalías y patrones basados en grupos locales muy específicos que las ecuaciones matemáticas pasan por alto.")
                 params_usuario['knn_neighbors'] = st.slider(
                     "Número de Vecinos (n_neighbors)", 1, 30, 5, 1,
                     help="Recomendación: 5. Cuántos puntos cercanos mira para tomar una decisión. Valores muy bajos causan que memorice (Overfitting)."
                 )
-            with col4:
+            with col6:
                 st.markdown("#### 🧲 Support Vector Machine (SVM)", help="Es brutalmente eficaz cuando los grupos están muy entremezclados y no se pueden separar con una línea recta, gracias a 'Truco de Kernel'")
                 params_usuario['svm_c'] = st.select_slider(
                     "Regularización (C)", options=[0.01, 0.1, 1.0, 10.0, 100.0], value=1.0,
