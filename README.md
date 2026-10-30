@@ -57,7 +57,7 @@ Dado que la plataforma maneja la ingesta de datasets personalizados, la arquitec
 │   │   ├── procesado_ui.py
 │   │   ├── supervisado_ui.py
 │   │   └── no_supervisado_ui.py
-│   ├── 📁 service/           # Lógica matemática, Data Wrangling y Modelado (Type Hinted)
+│   ├── 📁 service/        # Lógica matemática, Data Wrangling y Modelado (Type Hinted)
 │   │   ├── data_service.py
 │   │   ├── supervisado_service.py
 │   │   └── no_supervisado_service.py
