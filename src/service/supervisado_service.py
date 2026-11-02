@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Dict, Any
 from imblearn.over_sampling import SMOTE
 from lightgbm import LGBMClassifier, LGBMRegressor
-from catboost import CatBoostClassifier, CatBoostRegressor
+from catboost import CatBoostClassifier, CatBoostRegressor # type: ignore
 
 
 """
